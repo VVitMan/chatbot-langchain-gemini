@@ -62,3 +62,13 @@ streamlit run app.py
 ```
 Then open the app in your browser: http://localhost:8501
 
+### How to Run Streamlit App Next Time
+Make sure you’ve activated your Python virtual environment (if you're using one) for the next time running Streamlit:
+```
+venv\Scripts\activate
+```
+```
+streamlit run app.py
+```
+
+
