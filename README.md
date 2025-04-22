@@ -28,7 +28,7 @@
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/gemini-pdf-chatbot.git
+git clone https://github.com/VVitMan/chatbot-langchain-gemini.git
 cd gemini-pdf-chatbot
 ```
 
