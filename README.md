@@ -54,7 +54,7 @@ Create a .env file in the root directory and add your Google Generative AI API k
 ```
 GOOGLE_API_KEY=your_google_api_key_here
 ```
-Don't have a key? Get one from | [Google AI Studio]("https://aistudio.google.com/app/apikey)
+Don't have a key? Get one from | [Google AI Studio](https://aistudio.google.com/app/apikey)
 
 ### 5. Run app
 ```
