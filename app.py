@@ -31,6 +31,8 @@ def get_pdf_text(pdf_docs):
             if raw:
                 cleaned = clean_text(raw)
                 text += cleaned
+    if not text.strip(): #
+        raise ValueError("No valid text found in uploaded PDF files.")
     return text
 
 # Split text into chunks
@@ -42,8 +44,9 @@ def get_text_chunks(text):
 
 # Embeddings for each chunk
 def get_vector_store(chunks):
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model="models/embedding-001")  # type: ignore
+    if not chunks:
+        raise ValueError("No text chunks found. Ensure the PDF contains readable text.")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
     vector_store = FAISS.from_texts(chunks, embedding=embeddings)
     vector_store.save_local("faiss_index")
     
@@ -100,12 +103,19 @@ def main():
         st.title("Menu:")
         pdf_docs = st.file_uploader(
             "Upload your PDF Files and Click on the Submit & Process Button", accept_multiple_files=True)
+        
         if st.button("Submit & Process"):
-            with st.spinner("Processing..."):
-                raw_text = get_pdf_text(pdf_docs)
-                text_chunks = get_text_chunks(raw_text)
-                get_vector_store(text_chunks)
-                st.success("Done")
+            if not pdf_docs:
+                st.error("Please upload at least one PDF file.")
+            else:
+                with st.spinner("Processing..."):
+                    try:
+                        raw_text = get_pdf_text(pdf_docs)
+                        text_chunks = get_text_chunks(raw_text)
+                        get_vector_store(text_chunks)
+                        st.success("PDFs processed and vector store created!")
+                    except Exception as e:
+                        st.error(f"Error: {e}")
 
     # Main content area for displaying chat messages
     st.title("Chat with PDF files using Gemini 🙋‍♂️")
@@ -126,16 +136,17 @@ def main():
         with st.chat_message("user"):
             st.markdown(f"**User:** {prompt}")
 
-        # Check for specific user request to call them
-        if "call me" in prompt.lower():
-            st.session_state.collecting_info = True
-
         if st.session_state.messages[-1]["role"] != "assistant":
             with st.chat_message("assistant"):
                 with st.spinner("Thinking..."):
-                    response = user_input(prompt)
-                    st.session_state.messages.append({"role": "assistant", "content": response})
-                    st.markdown(f"**Assistant:** {response}")
-                    
+                    try:
+                        response = user_input(prompt)
+                        st.session_state.messages.append({"role": "assistant", "content": response})
+                        st.markdown(f"**Assistant:** {response}")
+                    except Exception as e:
+                        error_message = f"An error occurred: {e}"
+                        st.session_state.messages.append({"role": "assistant", "content": error_message})
+                        st.markdown(f"**Assistant:** {error_message}")
+
 if __name__ == "__main__":
     main()
