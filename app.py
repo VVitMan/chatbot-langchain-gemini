@@ -17,14 +17,20 @@ google_api_key = os.getenv("GOOGLE_API_KEY")
 # Configure genai
 genai.configure(api_key=google_api_key)
 
+# Helper function to clean text by removing invalid surrogates
+def clean_text(text):
+    return text.encode("utf-16", "surrogatepass").decode("utf-16", "ignore")
 
-# Read all pdf files and return text
+# Read all PDF files and return cleaned text
 def get_pdf_text(pdf_docs):
     text = ""
     for pdf in pdf_docs:
         pdf_reader = PdfReader(pdf)
         for page in pdf_reader.pages:
-            text += page.extract_text()
+            raw = page.extract_text()
+            if raw:
+                cleaned = clean_text(raw)
+                text += cleaned
     return text
 
 # Split text into chunks
