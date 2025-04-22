@@ -29,7 +29,7 @@
 
 ```bash
 git clone https://github.com/VVitMan/chatbot-langchain-gemini.git
-cd gemini-pdf-chatbot
+cd chatbot-langchain-gemini
 ```
 
 ### 2. Create & Activate a Virtual Environment (Optional but Recommended)
