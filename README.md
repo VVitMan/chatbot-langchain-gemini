@@ -58,7 +58,7 @@ Don't have a key? Get one from | [Google AI Studio](https://aistudio.google.com/
 
 ### 5. Run app
 ```
-Steamlit run app.py
+streamlit run app.py
 ```
 Then open the app in your browser: http://localhost:8501
 
