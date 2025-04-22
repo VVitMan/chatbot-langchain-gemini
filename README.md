@@ -50,7 +50,7 @@ pip install -r requirements.txt
 ```
 
 ### 4. Set up the .env file
-Create a .env file in the root directory and add your Google Generative AI API key:
+Create a **.env** file in the root directory and add your Google Generative AI API key:
 ```
 GOOGLE_API_KEY=your_google_api_key_here
 ```
