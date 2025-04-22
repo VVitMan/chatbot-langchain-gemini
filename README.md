@@ -28,8 +28,8 @@
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/gemini-pdf-chatbot.git
-cd gemini-pdf-chatbot
+git clone https://github.com/VVitMan/chatbot-langchain-gemini.git
+cd chatbot-langchain-gemini
 ```
 
 ### 2. Create & Activate a Virtual Environment (Optional but Recommended)
@@ -50,15 +50,27 @@ pip install -r requirements.txt
 ```
 
 ### 4. Set up the .env file
-Create a .env file in the root directory and add your Google Generative AI API key:
+Create a **.env** file in the root directory and add your Google Generative AI API key:
 ```
 GOOGLE_API_KEY=your_google_api_key_here
 ```
-Don't have a key? Get one from | [Google AI Studio]("https://aistudio.google.com/app/apikey)
+Don't have a key? Get one from | [Google AI Studio](https://aistudio.google.com/app/apikey)
 
 ### 5. Run app
 ```
-Steamlit run app.py
+streamlit run app.py
 ```
 Then open the app in your browser: http://localhost:8501
+
+### How to Run Streamlit App Next Time
+Make sure you’ve activated your Python virtual environment (if you're using one) for the next time running Streamlit:
+```
+venv\Scripts\activate
+```
+```
+streamlit run app.py
+```
+Now the app is ready to use on ```http://localhost:8501```!
+
+![image](https://github.com/user-attachments/assets/81e25b29-ceac-45ae-88cb-c9ea7c6ee0a8)
 
