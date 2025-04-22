@@ -103,19 +103,25 @@ def main():
         st.title("Menu:")
         pdf_docs = st.file_uploader(
             "Upload your PDF Files and Click on the Submit & Process Button", accept_multiple_files=True)
-        
+            
         if st.button("Submit & Process"):
             if not pdf_docs:
                 st.error("Please upload at least one PDF file.")
             else:
-                with st.spinner("Processing..."):
-                    try:
-                        raw_text = get_pdf_text(pdf_docs)
-                        text_chunks = get_text_chunks(raw_text)
-                        get_vector_store(text_chunks)
-                        st.success("PDFs processed and vector store created!")
-                    except Exception as e:
-                        st.error(f"Error: {e}")
+                non_pdf_files = [file.name for file in pdf_docs if not file.name.lower().endswith(".pdf")]
+                
+                if non_pdf_files:
+                    st.error(f"Only PDF files are allowed. The following are not PDFs: {', '.join(non_pdf_files)}")
+                else:
+                    with st.spinner("Processing..."):
+                        try:
+                            raw_text = get_pdf_text(pdf_docs)
+                            text_chunks = get_text_chunks(raw_text)
+                            get_vector_store(text_chunks)
+                            st.success("Success! Ready to chat.")
+                        except Exception as e:
+                            st.error(f"Error: {e}")
+                            st.error("Please upload at least one PDF file.")
 
     # Main content area for displaying chat messages
     st.title("Chat with PDF files using Gemini 🙋‍♂️")
