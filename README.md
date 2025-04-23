@@ -70,7 +70,7 @@ venv\Scripts\activate
 ```
 streamlit run app.py
 ```
-Now the app is ready to use on ```http://localhost:8501```!
+Now the app is ready to use on ```http://localhost:8501```
 
 ![image](https://github.com/user-attachments/assets/81e25b29-ceac-45ae-88cb-c9ea7c6ee0a8)
 
