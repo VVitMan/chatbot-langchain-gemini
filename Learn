@@ -1,0 +1,159 @@
+import os #OS module to interact with the operating system
+from PyPDF2 import PdfReader #PDF reader to extract text from PDF files
+from langchain.text_splitter import RecursiveCharacterTextSplitter #Text splitter to break text into manageable chunks, because the text is too long for the model to process in one go
+from langchain_google_genai import GoogleGenerativeAIEmbeddings #Google Generative AI embeddings for text representation, it's a way to convert text into a numerical format that the model can understand
+from langchain_google_genai import ChatGoogleGenerativeAI # Why this is used: This is a wrapper for the Google Gemini model, allowing interaction with the model for generating responses to user queries
+from langchain_community.vectorstores import FAISS #FAISS is a library for efficient similarity search and clustering of dense vectors, used here to store and retrieve text embeddings. FAISS stands for Facebook AI Similarity Search
+from langchain.chains.question_answering import load_qa_chain #Load QA chain for question answering tasks, it helps in structuring the interaction with the model for answering questions based on the provided context
+from langchain.prompts import PromptTemplate #Allows for creating templates for prompts, which are the inputs given to the model to generate responses
+from dotenv import load_dotenv #Load environment variables from a .env file, used to securely manage sensitive information like API keys
+import streamlit as st #Streamlit is a framework for building web applications in Python, used here to create the user interface for the chatbot
+import google.generativeai as genai7 #Google Generative AI library for interacting with the Google Gemini model
+
+# Load .env file
+load_dotenv() # Load environment variables from a .env file, used to securely manage sensitive information like API keys
+# Get API key from environment
+google_api_key = os.getenv("GOOGLE_API_KEY") # Get the Google API key from the environment variables, this is used to authenticate requests to the Google Gemini model
+# Configure genai
+genai.configure(api_key=google_api_key) # Configure the Google Generative AI library with the API key, allowing it to make requests to the Gemini model
+
+# Helper function to clean text by removing invalid surrogates
+def clean_text(text):
+    return text.encode("utf-16", "surrogatepass").decode("utf-16", "ignore") # Clean the text by encoding it in UTF-16 and then decoding it, this helps to remove any invalid characters that may cause issues during processing. Example of invalid characters: \udc00, \udc01, etc.
+
+# Read all PDF files and return cleaned text
+def get_pdf_text(pdf_docs):
+    text = "" # Initialize an empty string to store the cleaned text
+    for pdf in pdf_docs:    # Iterate over each PDF file uploaded by the user
+        pdf_reader = PdfReader(pdf) # Create a PDF reader object to read the content of the PDF file
+        for page in pdf_reader.pages:   # Iterate over each page in the PDF file
+            raw = page.extract_text()   # Extract the text from the page using the PDF reader
+            if raw: # Check if the extracted text is not empty
+                cleaned = clean_text(raw)   # Clean the extracted text to remove any invalid characters
+                text += cleaned # Append the cleaned text to the main text variable
+    if not text.strip(): # Check if the final text is empty after processing all pages | .strip() removes leading and trailing whitespace characters | Example of empty text: " ", "\n", "\t", etc.
+        raise ValueError("No valid text found in uploaded PDF files.") # Raise an error if no valid text is found in the uploaded PDF files
+    return text # Return the cleaned text
+
+# Split text into chunks
+def get_text_chunks(text): # Split the cleaned text into smaller chunks for processing
+    splitter = RecursiveCharacterTextSplitter( # Initialize the text splitter with specified chunk size and overlap
+        chunk_size=10000, chunk_overlap=1000) # chunk_size is the maximum size of each chunk, and chunk_overlap is the number of characters that overlap between consecutive chunks for better context retention
+    chunks = splitter.split_text(text) # Split the text into chunks using the text splitter
+    return chunks  # list of strings # Return the list of text chunks
+
+# Embeddings for each chunk
+def get_vector_store(chunks):  # Create a vector store for the text chunks, because the model needs to convert the text into a numerical format for processing this is done using embeddings (การฝังตัว)
+    if not chunks: # Check if the list of text chunks is empty
+        raise ValueError("No text chunks found. Ensure the PDF contains readable text.")    # Raise an error if no text chunks are found
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001") # Initialize the Google Generative AI embeddings model to convert text chunks into numerical vectors, use the "models/embedding-001" model for generating embeddings because it is specifically designed for this purpose, another options is "models/embedding-002" which is more expensive and slower but more accurate
+    vector_store = FAISS.from_texts(chunks, embedding=embeddings)   # Create a FAISS vector store from the text chunks and their corresponding embeddings, this allows for efficient similarity search and retrieval of relevant text chunks based on user queries
+    vector_store.save_local("faiss_index") # Save the vector store locally for future use, this allows for quick retrieval of the vector store without needing to recreate it each time the application is run
+    # save locally to faiss_index file, this is a binary file that contains the vector store and can be loaded later for use in the application # saved in the current working directory of the script, which is usually the same directory where the script is located
+    
+# Conversational
+def get_conversational_chain():
+    prompt_template = """ 
+    Answer the question as detailed as possible from the provided context, make sure to provide all the details, if the answer is not in
+    provided context just say, "answer is not available in the context", don't provide the wrong answer\n\n
+    Context:\n {context}?\n
+    Question: \n{question}\n
+
+    Answer:
+    """
+
+    model = ChatGoogleGenerativeAI(model="gemini-2.0-flash",
+                                   client=genai,
+                                   temperature=0.3,
+                                   )
+    prompt = PromptTemplate(template=prompt_template,
+                            input_variables=["context", "question"])
+    chain = load_qa_chain(llm=model, chain_type="stuff", prompt=prompt)
+    return chain
+
+# Handle User Input
+def user_input(user_question):
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model="models/embedding-001")  # type: ignore
+
+    new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True) 
+    docs = new_db.similarity_search(user_question)
+
+    chain = get_conversational_chain()
+
+    response = chain(
+        {"input_documents": docs, "question": user_question}, return_only_outputs=True, )
+
+    return response['output_text']
+
+# Clear Chat
+def clear_chat_history():
+    st.session_state.messages = [
+        {"role": "assistant", "content": "Upload some PDFs and ask me a question"}]
+
+# Streamlit app
+def main():
+    st.set_page_config(
+        page_title="Gemini PDF Chatbot",
+        page_icon="🖐",
+        layout="wide"
+    )
+
+    # Sidebar for uploading PDF files
+    with st.sidebar:
+        st.title("Menu:")
+        pdf_docs = st.file_uploader(
+            "Upload your PDF Files and Click on the Submit & Process Button", accept_multiple_files=True)
+            
+        if st.button("Submit & Process"):
+            if not pdf_docs:
+                st.error("Please upload at least one PDF file.")
+            else:
+                non_pdf_files = [file.name for file in pdf_docs if not file.name.lower().endswith(".pdf")]
+                
+                if non_pdf_files:
+                    st.error(f"Only PDF files are allowed. The following are not PDFs: {', '.join(non_pdf_files)}")
+                else:
+                    with st.spinner("Processing..."):
+                        try:
+                            raw_text = get_pdf_text(pdf_docs)
+                            text_chunks = get_text_chunks(raw_text)
+                            get_vector_store(text_chunks)
+                            st.success("Success! Ready to chat.")
+                        except Exception as e:
+                            st.error(f"Error: {e}")
+                            st.error("Please upload at least one PDF file.")
+
+    # Main content area for displaying chat messages
+    st.title("Chat with PDF files using Gemini 🙋‍♂️")
+    st.write("Welcome to the chat!")
+    st.sidebar.button('Clear Chat History', on_click=clear_chat_history)
+    
+    # Chat input
+    if "messages" not in st.session_state.keys():
+        st.session_state.messages = [
+            {"role": "assistant", "content": "Upload some PDFs and ask me a question"}]
+
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(f"**{message['role'].capitalize()}:** {message['content']}")
+
+    if prompt := st.chat_input():
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(f"**User:** {prompt}")
+
+        if st.session_state.messages[-1]["role"] != "assistant":
+            with st.chat_message("assistant"):
+                with st.spinner("Thinking..."):
+                    try:
+                        response = user_input(prompt)
+                        st.session_state.messages.append({"role": "assistant", "content": response})
+                        st.markdown(f"**Assistant:** {response}")
+                    except Exception as e:
+                        error_message = f"An error occurred: {e}"
+                        st.session_state.messages.append({"role": "assistant", "content": error_message})
+                        st.markdown(f"**Assistant:** {error_message}")
+
+if __name__ == "__main__":
+    main()
