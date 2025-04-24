@@ -140,15 +140,23 @@ def main():
         st.session_state.messages = [
             {"role": "assistant", "content": "Upload some PDFs and ask me a question"}]
 
+    # loop renders each message in the conversation history
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(f"**{message['role'].capitalize()}:** {message['content']}")
 
+    # creates a text input field at the bottom of the app where users can type messages.
+    # while "prompt" will store submit message from user
     if prompt := st.chat_input():
+        
+        # Adds the user's input to the chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
+            # Display user's message in the chat
             st.markdown(f"**User:** {prompt}")
 
+        # Generate and display assistant's response
+        # checks if the last message is not already from the assistant (prevent duplicate responses)
         if st.session_state.messages[-1]["role"] != "assistant":
             with st.chat_message("assistant"):
                 with st.spinner("Thinking..."):
